@@ -11,8 +11,12 @@ Tools::~Tools() {}
 
 VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
                               const vector<VectorXd> &ground_truth) {
-  /**
-  TODO:
-    * Calculate the RMSE here.
-  */
+  VectorXd accum = VectorXd::Zero(4);
+  
+  for (int i = 0; i < estimations.size(); i++) {
+    VectorXd error = (estimations[i] - ground_truth[i]).array().square();
+    accum = accum + error;
+  }
+
+  return (accum / estimations.size()).array().sqrt();
 }

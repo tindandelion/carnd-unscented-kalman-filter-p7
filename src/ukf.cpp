@@ -44,6 +44,8 @@ UKF::UKF() {
   // Radar measurement noise standard deviation radius change in m/s
   std_radrd_ = 0.3;
 
+  is_initialized_ = false;
+
   /**
   TODO:
 
@@ -54,6 +56,23 @@ UKF::UKF() {
 }
 
 UKF::~UKF() {}
+
+void UKF::Initialize(MeasurementPackage meas_package) {
+  if (meas_package.sensor_type_ == MeasurementPackage::SensorType::LASER) {
+    x_[0] = meas_package.raw_measurements_[0];
+    x_[1] = meas_package.raw_measurements_[1];
+    x_[2] = 0;
+    x_[3] = 0;
+  } else {
+    double rho = meas_package.raw_measurements_[0];
+    double phi = meas_package.raw_measurements_[1];
+    double rhodot = meas_package.raw_measurements_[2];
+    x_[0] = rho * cos(phi);
+    x_[1] = rho * sin(phi);
+    x_[2] = rhodot * cos(phi);
+    x_[3] = rhodot * sin(phi);
+  }
+}
 
 /**
  * @param {MeasurementPackage} meas_package The latest measurement data of
@@ -66,6 +85,16 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
+  double time_delta = (meas_package.timestamp_ - time_us_) / 1e6;
+  time_us_ = meas_package.timestamp_;
+  
+  if (!is_initialized_) {
+    Initialize(meas_package);
+    is_initialized_ = true;
+  } else {
+    Prediction(time_delta);
+  }
+
 }
 
 /**

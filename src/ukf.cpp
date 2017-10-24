@@ -104,6 +104,10 @@ void UKF::GenerateSigmaPoints(MatrixXd& X_sigma) {
   
 }
 
+void UKF::PredictSigmaPoints(const MatrixXd& X_sigma, MatrixXd& X_sigma_pred, double delta_t) {
+  X_sigma_pred = X_sigma;
+}
+
 /**
  * @param {MeasurementPackage} meas_package The latest measurement data of
  * either radar or laser.
@@ -139,9 +143,10 @@ void UKF::Prediction(double delta_t) {
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
-  MatrixXd sigma;
-  GenerateSigmaPoints(sigma);
-  cout << "Sigma = " << sigma << endl;
+  MatrixXd X_sigma, X_sigma_pred;
+  GenerateSigmaPoints(X_sigma);
+  PredictSigmaPoints(X_sigma, X_sigma_pred, delta_t);
+  cout << "X_sigma_pred = " << X_sigma_pred << endl;
 }
 
 /**

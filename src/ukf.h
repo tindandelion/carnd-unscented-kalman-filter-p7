@@ -103,7 +103,9 @@ public:
    */
   void UpdateRadar(MeasurementPackage meas_package);
 
-  void Initialize(MeasurementPackage meas_package);
+private:
+  void Initialize(const MeasurementPackage& meas_package);
+  void GenerateSigmaPoints(MatrixXd& sigma);
 };
 
 #endif /* UKF_H */

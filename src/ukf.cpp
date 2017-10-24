@@ -11,6 +11,11 @@ using std::vector;
  * Initializes Unscented Kalman filter
  */
 UKF::UKF() {
+  
+  n_x_ = 5;
+  n_aug_ = n_x_ + 2;
+  lambda_ = 3 - n_aug_;
+  
   // if this is false, laser measurements will be ignored (except during init)
   use_laser_ = true;
 
@@ -18,10 +23,10 @@ UKF::UKF() {
   use_radar_ = true;
 
   // initial state vector
-  x_ = VectorXd(5);
+  x_ = VectorXd(n_x_);
 
   // initial covariance matrix
-  P_ = MatrixXd(5, 5);
+  P_ = MatrixXd(n_x_, n_x_);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
   std_a_ = 30;
@@ -57,21 +62,46 @@ UKF::UKF() {
 
 UKF::~UKF() {}
 
-void UKF::Initialize(MeasurementPackage meas_package) {
+void UKF::Initialize(const MeasurementPackage& meas_package) {
   if (meas_package.sensor_type_ == MeasurementPackage::SensorType::LASER) {
     x_[0] = meas_package.raw_measurements_[0];
     x_[1] = meas_package.raw_measurements_[1];
     x_[2] = 0;
     x_[3] = 0;
+    x_[4] = 0;
   } else {
     double rho = meas_package.raw_measurements_[0];
     double phi = meas_package.raw_measurements_[1];
-    double rhodot = meas_package.raw_measurements_[2];
     x_[0] = rho * cos(phi);
     x_[1] = rho * sin(phi);
-    x_[2] = rhodot * cos(phi);
-    x_[3] = rhodot * sin(phi);
+    x_[2] = 0;
+    x_[3] = 0;
+    x_[4] = 0;
   }
+}
+
+void UKF::GenerateSigmaPoints(MatrixXd& X_sigma) {
+  VectorXd x_aug = VectorXd::Zero(n_aug_);
+  MatrixXd P_aug = MatrixXd::Zero(n_aug_, n_aug_);
+  MatrixXd Q = MatrixXd(2, 2);
+  Q <<
+    std_a_*std_a_, 0,
+    0, std_yawdd_*std_yawdd_;
+  
+  x_aug.head(n_x_) = x_;
+  P_aug.topLeftCorner(n_x_, n_x_) = P_;
+  P_aug.bottomRightCorner(2, 2) = Q;
+
+  MatrixXd P_sqrt = P_aug.llt().matrixL();
+  MatrixXd sigma_common = sqrt(lambda_ + n_aug_) * P_sqrt;
+  
+  X_sigma = MatrixXd::Zero(n_aug_, 2*n_aug_ + 1);
+  X_sigma.col(0) = x_aug;
+  for(int i = 0; i < n_aug_; i++) {
+    X_sigma.col(i+1) = x_aug + sigma_common.col(i);
+    X_sigma.col(n_aug_+i+1) = x_aug - sigma_common.col(i);
+  }
+  
 }
 
 /**
@@ -109,6 +139,9 @@ void UKF::Prediction(double delta_t) {
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
+  MatrixXd sigma;
+  GenerateSigmaPoints(sigma);
+  cout << "Sigma = " << sigma << endl;
 }
 
 /**

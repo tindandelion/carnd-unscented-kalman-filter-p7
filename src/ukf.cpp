@@ -105,7 +105,36 @@ void UKF::GenerateSigmaPoints(MatrixXd& X_sigma) {
 }
 
 void UKF::PredictSigmaPoints(const MatrixXd& X_sigma, MatrixXd& X_sigma_pred, double delta_t) {
-  X_sigma_pred = X_sigma;
+  X_sigma_pred = MatrixXd::Zero(n_x_, X_sigma.cols());
+
+  for(int i = 0; i < X_sigma.cols(); i++) {
+    const VectorXd& pt = X_sigma.col(i);
+    double px = pt[0], py = pt[1], v = pt[2],
+      yaw = pt[3], yaw_d = pt[4], v_acc = pt[5], yaw_acc = pt[6];
+     
+    VectorXd delta_x = VectorXd(5);
+    VectorXd noise = VectorXd(5);
+     
+    if (fabs(yaw_d) > 1e-4) {
+      delta_x(0) = v/yaw_d * (sin(yaw + yaw_d * delta_t) - sin(yaw));
+      delta_x(1) = v/yaw_d * (-cos(yaw + yaw_d * delta_t) + cos(yaw));
+    } else {
+      delta_x(0) = v * cos(yaw) * delta_t;
+      delta_x(1) = v * sin(yaw) * delta_t;
+    }
+     
+    delta_x(2) = 0;
+    delta_x(3) = yaw_d*delta_t;
+    delta_x(4) = 0;
+    
+    noise(0) = (delta_t*delta_t)/2 * cos(yaw) * v_acc;
+    noise(1) = (delta_t*delta_t)/2 * sin(yaw) * v_acc;
+    noise(2) = delta_t * v_acc;
+    noise(3) = yaw_acc*(delta_t*delta_t)/2;
+    noise(4) = delta_t * yaw_acc;
+     
+    X_sigma_pred.col(i) = pt.head(5) + delta_x + noise;
+  }
 }
 
 /**

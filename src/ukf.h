@@ -107,6 +107,7 @@ private:
   void Initialize(const MeasurementPackage& meas_package);
   void GenerateSigmaPoints(MatrixXd& sigma);
   void PredictSigmaPoints(const MatrixXd& X_sigma, MatrixXd& X_sigma_pred, double delta_t);
+  void PredictState(const MatrixXd& X_sigma_pred);
 };
 
 #endif /* UKF_H */

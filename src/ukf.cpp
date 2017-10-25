@@ -51,6 +51,13 @@ UKF::UKF() {
 
   is_initialized_ = false;
 
+  P_ <<
+    1, 0, 0, 0, 0,
+    0, 1, 0, 0, 0,
+    0, 0, 1, 0, 0,
+    0, 0, 0, 1, 0,
+    0, 0, 0, 0, 1;
+
   /**
   TODO:
 
@@ -137,6 +144,32 @@ void UKF::PredictSigmaPoints(const MatrixXd& X_sigma, MatrixXd& X_sigma_pred, do
   }
 }
 
+void UKF::PredictState(const MatrixXd& X_sigma_pred) {
+  VectorXd x(n_x_);
+  MatrixXd P(n_x_, n_x_);
+  VectorXd weights(X_sigma_pred.cols());
+  
+  for(int i = 0; i < weights.size(); i++) {
+    if (i == 0) {
+      weights[i] = lambda_ / (lambda_ + n_aug_);
+    } else {
+      weights[i] = 1 / (2 * (lambda_ + n_aug_));
+    }
+  }
+  //predict state mean
+  for(int i = 0; i < X_sigma_pred.cols(); i++) {
+    x += weights[i] * X_sigma_pred.col(i);
+  }
+  
+  //predict state covariance matrix
+  for(int i = 0; i < X_sigma_pred.cols(); i++) {
+    VectorXd diff = X_sigma_pred.col(i) - x;
+    P += weights[i] * diff * diff.transpose();
+  }
+  x_ = x;
+  P_ = P;
+}
+
 /**
  * @param {MeasurementPackage} meas_package The latest measurement data of
  * either radar or laser.
@@ -174,8 +207,14 @@ void UKF::Prediction(double delta_t) {
   */
   MatrixXd X_sigma, X_sigma_pred;
   GenerateSigmaPoints(X_sigma);
-  PredictSigmaPoints(X_sigma, X_sigma_pred, delta_t);
-  cout << "X_sigma_pred = " << X_sigma_pred << endl;
+  cout << "x_" << x_ << endl;
+  cout << "P = " << P_ << endl;
+  cout << "X_sigma = " << X_sigma << endl;
+  // PredictSigmaPoints(X_sigma, X_sigma_pred, delta_t);
+  
+  // PredictState(X_sigma_pred);
+  // cout << "Predicted x = " << x_ << endl;
+  // cout << "Predicted P = " << P_ << endl;
 }
 
 /**

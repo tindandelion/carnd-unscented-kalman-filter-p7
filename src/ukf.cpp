@@ -7,6 +7,12 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using std::vector;
 
+double NormalizeAngle(double angle_rad) {
+  while (angle_rad > M_PI) angle_rad -= 2.0*M_PI;
+  while (angle_rad < -M_PI) angle_rad += 2.0*M_PI;
+  return angle_rad;
+}
+
 /**
  * Initializes Unscented Kalman filter
  */
@@ -58,6 +64,12 @@ UKF::UKF() {
     0, 0, 0, 1, 0,
     0, 0, 0, 0, 1;
 
+  // Process noise standard deviation longitudinal acceleration in m/s^2
+  std_a_ = 0;
+
+  // Process noise standard deviation yaw acceleration in rad/s^2
+  std_yawdd_ = 0;
+  
   /**
   TODO:
 
@@ -73,17 +85,17 @@ void UKF::Initialize(const MeasurementPackage& meas_package) {
   if (meas_package.sensor_type_ == MeasurementPackage::SensorType::LASER) {
     x_[0] = meas_package.raw_measurements_[0];
     x_[1] = meas_package.raw_measurements_[1];
-    x_[2] = 0;
-    x_[3] = 0;
-    x_[4] = 0;
+    x_[2] = 1;
+    x_[3] = M_PI / 4;
+    x_[4] = M_PI / 12;
   } else {
     double rho = meas_package.raw_measurements_[0];
     double phi = meas_package.raw_measurements_[1];
     x_[0] = rho * cos(phi);
     x_[1] = rho * sin(phi);
-    x_[2] = 0;
-    x_[3] = 0;
-    x_[4] = 0;
+    x_[2] = 1;
+    x_[3] = M_PI / 4;
+    x_[4] = M_PI / 12;
   }
 }
 
@@ -164,6 +176,7 @@ void UKF::PredictState(const MatrixXd& X_sigma_pred) {
   //predict state covariance matrix
   for(int i = 0; i < X_sigma_pred.cols(); i++) {
     VectorXd diff = X_sigma_pred.col(i) - x;
+    diff(3) = NormalizeAngle(diff(3));
     P += weights[i] * diff * diff.transpose();
   }
   x_ = x;
@@ -199,18 +212,10 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
  * measurement and this one.
  */
 void UKF::Prediction(double delta_t) {
-  /**
-  TODO:
-
-  Complete this function! Estimate the object's location. Modify the state
-  vector, x_. Predict sigma points, the state, and the state covariance matrix.
-  */
   MatrixXd X_sigma, X_sigma_pred;
   GenerateSigmaPoints(X_sigma);
   PredictSigmaPoints(X_sigma, X_sigma_pred, delta_t);
   PredictState(X_sigma_pred);
-  cout << "Predicted x = " << x_ << endl;
-  cout << "Predicted P = " << P_ << endl;
 }
 
 /**

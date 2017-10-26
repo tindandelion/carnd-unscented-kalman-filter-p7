@@ -145,9 +145,9 @@ void UKF::PredictSigmaPoints(const MatrixXd& X_sigma, MatrixXd& X_sigma_pred, do
 }
 
 void UKF::PredictState(const MatrixXd& X_sigma_pred) {
-  VectorXd x(n_x_);
-  MatrixXd P(n_x_, n_x_);
-  VectorXd weights(X_sigma_pred.cols());
+  VectorXd x = VectorXd::Zero(n_x_);
+  MatrixXd P = MatrixXd::Zero(n_x_, n_x_);
+  VectorXd weights = VectorXd::Zero(X_sigma_pred.cols());
   
   for(int i = 0; i < weights.size(); i++) {
     if (i == 0) {
@@ -207,14 +207,10 @@ void UKF::Prediction(double delta_t) {
   */
   MatrixXd X_sigma, X_sigma_pred;
   GenerateSigmaPoints(X_sigma);
-  cout << "x_" << x_ << endl;
-  cout << "P = " << P_ << endl;
-  cout << "X_sigma = " << X_sigma << endl;
-  // PredictSigmaPoints(X_sigma, X_sigma_pred, delta_t);
-  
-  // PredictState(X_sigma_pred);
-  // cout << "Predicted x = " << x_ << endl;
-  // cout << "Predicted P = " << P_ << endl;
+  PredictSigmaPoints(X_sigma, X_sigma_pred, delta_t);
+  PredictState(X_sigma_pred);
+  cout << "Predicted x = " << x_ << endl;
+  cout << "Predicted P = " << P_ << endl;
 }
 
 /**

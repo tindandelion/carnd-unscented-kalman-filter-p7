@@ -69,6 +69,8 @@ UKF::UKF() {
 
   // Process noise standard deviation yaw acceleration in rad/s^2
   std_yawdd_ = 0;
+
+  X_sigma_pred_ = MatrixXd::Zero(n_x_, 2 * n_aug_ + 1);
   
   /**
   TODO:
@@ -99,7 +101,7 @@ void UKF::Initialize(const MeasurementPackage& meas_package) {
   }
 }
 
-void UKF::GenerateSigmaPoints(MatrixXd& X_sigma) {
+MatrixXd UKF::GenerateSigmaPoints() {
   VectorXd x_aug = VectorXd::Zero(n_aug_);
   MatrixXd P_aug = MatrixXd::Zero(n_aug_, n_aug_);
   MatrixXd Q = MatrixXd(2, 2);
@@ -114,19 +116,18 @@ void UKF::GenerateSigmaPoints(MatrixXd& X_sigma) {
   MatrixXd P_sqrt = P_aug.llt().matrixL();
   MatrixXd sigma_common = sqrt(lambda_ + n_aug_) * P_sqrt;
   
-  X_sigma = MatrixXd::Zero(n_aug_, 2*n_aug_ + 1);
+  MatrixXd X_sigma = MatrixXd::Zero(n_aug_, 2*n_aug_ + 1);
   X_sigma.col(0) = x_aug;
   for(int i = 0; i < n_aug_; i++) {
     X_sigma.col(i+1) = x_aug + sigma_common.col(i);
     X_sigma.col(n_aug_+i+1) = x_aug - sigma_common.col(i);
   }
-  
+
+  return X_sigma;
 }
 
-void UKF::PredictSigmaPoints(const MatrixXd& X_sigma, MatrixXd& X_sigma_pred, double delta_t) {
-  X_sigma_pred = MatrixXd::Zero(n_x_, X_sigma.cols());
-
-  for(int i = 0; i < X_sigma.cols(); i++) {
+void UKF::PredictSigmaPoints(const MatrixXd& X_sigma, double delta_t) {
+  for(int i = 0; i < X_sigma_pred_.cols(); i++) {
     const VectorXd& pt = X_sigma.col(i);
     double px = pt[0], py = pt[1], v = pt[2],
       yaw = pt[3], yaw_d = pt[4], v_acc = pt[5], yaw_acc = pt[6];
@@ -152,14 +153,14 @@ void UKF::PredictSigmaPoints(const MatrixXd& X_sigma, MatrixXd& X_sigma_pred, do
     noise(3) = yaw_acc*(delta_t*delta_t)/2;
     noise(4) = delta_t * yaw_acc;
      
-    X_sigma_pred.col(i) = pt.head(5) + delta_x + noise;
+    X_sigma_pred_.col(i) = pt.head(5) + delta_x + noise;
   }
 }
 
-void UKF::PredictState(const MatrixXd& X_sigma_pred) {
+void UKF::PredictState() {
   VectorXd x = VectorXd::Zero(n_x_);
   MatrixXd P = MatrixXd::Zero(n_x_, n_x_);
-  VectorXd weights = VectorXd::Zero(X_sigma_pred.cols());
+  VectorXd weights = VectorXd::Zero(X_sigma_pred_.cols());
   
   for(int i = 0; i < weights.size(); i++) {
     if (i == 0) {
@@ -169,13 +170,13 @@ void UKF::PredictState(const MatrixXd& X_sigma_pred) {
     }
   }
   //predict state mean
-  for(int i = 0; i < X_sigma_pred.cols(); i++) {
-    x += weights[i] * X_sigma_pred.col(i);
+  for(int i = 0; i < X_sigma_pred_.cols(); i++) {
+    x += weights[i] * X_sigma_pred_.col(i);
   }
   
   //predict state covariance matrix
-  for(int i = 0; i < X_sigma_pred.cols(); i++) {
-    VectorXd diff = X_sigma_pred.col(i) - x;
+  for(int i = 0; i < X_sigma_pred_.cols(); i++) {
+    VectorXd diff = X_sigma_pred_.col(i) - x;
     diff(3) = NormalizeAngle(diff(3));
     P += weights[i] * diff * diff.transpose();
   }
@@ -202,6 +203,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     is_initialized_ = true;
   } else {
     Prediction(time_delta);
+    Update(meas_package);
   }
 
 }
@@ -212,17 +214,26 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
  * measurement and this one.
  */
 void UKF::Prediction(double delta_t) {
-  MatrixXd X_sigma, X_sigma_pred;
-  GenerateSigmaPoints(X_sigma);
-  PredictSigmaPoints(X_sigma, X_sigma_pred, delta_t);
-  PredictState(X_sigma_pred);
+  MatrixXd X_sigma = GenerateSigmaPoints();
+  PredictSigmaPoints(X_sigma, delta_t);
+  PredictState();
+  cout << "x_ = " << endl << x_ << endl;
+  cout << "P_ = " << endl << P_ << endl;
+}
+
+void UKF::Update(const MeasurementPackage& meas_package) {
+  MeasurementPackage::SensorType sensor = meas_package.sensor_type_;
+  
+  if (sensor == MeasurementPackage::LASER && use_laser_) {
+    UpdateLidar(meas_package);
+  } 
 }
 
 /**
  * Updates the state and the state covariance matrix using a laser measurement.
  * @param {MeasurementPackage} meas_package
  */
-void UKF::UpdateLidar(MeasurementPackage meas_package) {
+void UKF::UpdateLidar(const MeasurementPackage& meas_package) {
   /**
   TODO:
 
@@ -231,6 +242,12 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the lidar NIS.
   */
+  VectorXd z_pred = PredictLidarMeasurement();
+  cout << "z_pred = " << endl << z_pred << endl;
+}
+
+VectorXd UKF::PredictLidarMeasurement() {
+  return VectorXd::Zero(2);
 }
 
 /**

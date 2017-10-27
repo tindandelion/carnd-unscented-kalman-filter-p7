@@ -95,7 +95,7 @@ public:
    * Updates the state and the state covariance matrix using a laser measurement
    * @param meas_package The measurement at k+1
    */
-  void UpdateLidar(MeasurementPackage meas_package);
+  void UpdateLidar(const MeasurementPackage& meas_package);
 
   /**
    * Updates the state and the state covariance matrix using a radar measurement
@@ -104,10 +104,15 @@ public:
   void UpdateRadar(MeasurementPackage meas_package);
 
 private:
+  MatrixXd X_sigma_pred_;
+  
   void Initialize(const MeasurementPackage& meas_package);
-  void GenerateSigmaPoints(MatrixXd& sigma);
-  void PredictSigmaPoints(const MatrixXd& X_sigma, MatrixXd& X_sigma_pred, double delta_t);
-  void PredictState(const MatrixXd& X_sigma_pred);
+  MatrixXd GenerateSigmaPoints();
+  void PredictSigmaPoints(const MatrixXd& X_sigma, double delta_t);
+  void PredictState();
+  void Update(const MeasurementPackage& meas_package);
+
+  VectorXd PredictLidarMeasurement();
 };
 
 #endif /* UKF_H */

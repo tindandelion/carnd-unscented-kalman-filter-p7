@@ -104,8 +104,6 @@ public:
   void UpdateRadar(MeasurementPackage meas_package);
 
 private:
-  MatrixXd X_sigma_pred_;
-  
   void Initialize(const MeasurementPackage& meas_package);
   MatrixXd GenerateSigmaPoints();
   void PredictSigmaPoints(const MatrixXd& X_sigma, double delta_t);

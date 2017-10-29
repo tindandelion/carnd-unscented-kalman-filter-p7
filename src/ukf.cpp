@@ -70,8 +70,18 @@ UKF::UKF() {
   // Process noise standard deviation yaw acceleration in rad/s^2
   std_yawdd_ = 0;
 
-  X_sigma_pred_ = MatrixXd::Zero(n_x_, 2 * n_aug_ + 1);
+  Xsig_pred_ = MatrixXd::Zero(n_x_, 2 * n_aug_ + 1);
+
+  weights_ = VectorXd::Zero(Xsig_pred_.cols());
   
+  for(int i = 0; i < weights_.size(); i++) {
+    if (i == 0) {
+      weights_[i] = lambda_ / (lambda_ + n_aug_);
+    } else {
+      weights_[i] = 1 / (2 * (lambda_ + n_aug_));
+    }
+  }
+
   /**
   TODO:
 
@@ -127,7 +137,7 @@ MatrixXd UKF::GenerateSigmaPoints() {
 }
 
 void UKF::PredictSigmaPoints(const MatrixXd& X_sigma, double delta_t) {
-  for(int i = 0; i < X_sigma_pred_.cols(); i++) {
+  for(int i = 0; i < Xsig_pred_.cols(); i++) {
     const VectorXd& pt = X_sigma.col(i);
     double px = pt[0], py = pt[1], v = pt[2],
       yaw = pt[3], yaw_d = pt[4], v_acc = pt[5], yaw_acc = pt[6];
@@ -153,32 +163,22 @@ void UKF::PredictSigmaPoints(const MatrixXd& X_sigma, double delta_t) {
     noise(3) = yaw_acc*(delta_t*delta_t)/2;
     noise(4) = delta_t * yaw_acc;
      
-    X_sigma_pred_.col(i) = pt.head(5) + delta_x + noise;
+    Xsig_pred_.col(i) = pt.head(5) + delta_x + noise;
   }
 }
 
 void UKF::PredictState() {
   VectorXd x = VectorXd::Zero(n_x_);
   MatrixXd P = MatrixXd::Zero(n_x_, n_x_);
-  VectorXd weights = VectorXd::Zero(X_sigma_pred_.cols());
-  
-  for(int i = 0; i < weights.size(); i++) {
-    if (i == 0) {
-      weights[i] = lambda_ / (lambda_ + n_aug_);
-    } else {
-      weights[i] = 1 / (2 * (lambda_ + n_aug_));
-    }
-  }
-  //predict state mean
-  for(int i = 0; i < X_sigma_pred_.cols(); i++) {
-    x += weights[i] * X_sigma_pred_.col(i);
+
+  for(int i = 0; i < Xsig_pred_.cols(); i++) {
+    x += weights_[i] * Xsig_pred_.col(i);
   }
   
-  //predict state covariance matrix
-  for(int i = 0; i < X_sigma_pred_.cols(); i++) {
-    VectorXd diff = X_sigma_pred_.col(i) - x;
+  for(int i = 0; i < Xsig_pred_.cols(); i++) {
+    VectorXd diff = Xsig_pred_.col(i) - x;
     diff(3) = NormalizeAngle(diff(3));
-    P += weights[i] * diff * diff.transpose();
+    P += weights_[i] * diff * diff.transpose();
   }
   x_ = x;
   P_ = P;

@@ -57,7 +57,6 @@ UKF::UKF() {
   P_ = 10 * MatrixXd::Identity(n_x_, n_x_);
 
   Xsig_pred_ = MatrixXd::Zero(n_x_, 2 * n_aug_ + 1);
-
   weights_ = VectorXd::Zero(Xsig_pred_.cols());
   
   for(int i = 0; i < weights_.size(); i++) {
@@ -72,6 +71,9 @@ UKF::UKF() {
   R_laser_ <<
     std_laspx_*std_laspx_, 0,
     0, std_laspy_*std_laspy_;
+
+  std_a_ = 0.5;
+  std_yawdd_ = M_PI / 12;
 
 
   /**
@@ -197,7 +199,6 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     Prediction(time_delta);
     Update(meas_package);
   }
-  cout << "P = " << endl << P_ << endl;
 }
 
 /**
@@ -259,9 +260,15 @@ void UKF::UpdateLidar(const VectorXd& z_meas) {
     T += weights_[i] * x_diff * z_diff.transpose();
   }
 
-  MatrixXd K = T * S.inverse();
-  x_ = x_ + K * (z_meas - z_pred);
+  VectorXd delta_z = z_meas - z_pred;
+  MatrixXd S_inv = S.inverse();
+  
+  MatrixXd K = T * S_inv;
+  x_ = x_ + K * delta_z;
   P_ = P_ - K * S * K.transpose();
+
+  VectorXd nis = delta_z.transpose() * S_inv * delta_z;
+  cout << nis << endl;
   
 }
 

@@ -91,18 +91,15 @@ void UKF::Initialize(const MeasurementPackage& meas_package) {
   if (meas_package.sensor_type_ == MeasurementPackage::SensorType::LASER) {
     x_[0] = meas_package.raw_measurements_[0];
     x_[1] = meas_package.raw_measurements_[1];
-    x_[2] = 1;
-    x_[3] = M_PI / 4;
-    x_[4] = M_PI / 12;
   } else {
     double rho = meas_package.raw_measurements_[0];
     double phi = meas_package.raw_measurements_[1];
     x_[0] = rho * cos(phi);
     x_[1] = rho * sin(phi);
-    x_[2] = 1;
-    x_[3] = M_PI / 4;
-    x_[4] = M_PI / 12;
   }
+  x_[2] = 0;
+  x_[3] = 0;
+  x_[4] = 0;
 }
 
 MatrixXd UKF::GenerateSigmaPoints() {

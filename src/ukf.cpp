@@ -31,9 +31,6 @@ UKF::UKF() {
   // initial state vector
   x_ = VectorXd(n_x_);
 
-  // initial covariance matrix
-  P_ = MatrixXd(n_x_, n_x_);
-
   // Process noise standard deviation longitudinal acceleration in m/s^2
   std_a_ = 30;
 
@@ -57,18 +54,7 @@ UKF::UKF() {
 
   is_initialized_ = false;
 
-  P_ <<
-    1, 0, 0, 0, 0,
-    0, 1, 0, 0, 0,
-    0, 0, 1, 0, 0,
-    0, 0, 0, 1, 0,
-    0, 0, 0, 0, 1;
-
-  // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 0;
-
-  // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 0;
+  P_ = 10 * MatrixXd::Identity(n_x_, n_x_);
 
   Xsig_pred_ = MatrixXd::Zero(n_x_, 2 * n_aug_ + 1);
 
@@ -81,6 +67,12 @@ UKF::UKF() {
       weights_[i] = 1 / (2 * (lambda_ + n_aug_));
     }
   }
+
+  R_laser_ = MatrixXd(2, 2);
+  R_laser_ <<
+    std_laspx_*std_laspx_, 0,
+    0, std_laspy_*std_laspy_;
+
 
   /**
   TODO:
@@ -205,7 +197,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     Prediction(time_delta);
     Update(meas_package);
   }
-
+  cout << "P = " << endl << P_ << endl;
 }
 
 /**
@@ -217,15 +209,13 @@ void UKF::Prediction(double delta_t) {
   MatrixXd X_sigma = GenerateSigmaPoints();
   PredictSigmaPoints(X_sigma, delta_t);
   PredictState();
-  cout << "x_ = " << endl << x_ << endl;
-  cout << "P_ = " << endl << P_ << endl;
 }
 
 void UKF::Update(const MeasurementPackage& meas_package) {
   MeasurementPackage::SensorType sensor = meas_package.sensor_type_;
   
   if (sensor == MeasurementPackage::LASER && use_laser_) {
-    UpdateLidar(meas_package);
+    UpdateLidar(meas_package.raw_measurements_);
   } 
 }
 
@@ -233,7 +223,7 @@ void UKF::Update(const MeasurementPackage& meas_package) {
  * Updates the state and the state covariance matrix using a laser measurement.
  * @param {MeasurementPackage} meas_package
  */
-void UKF::UpdateLidar(const MeasurementPackage& meas_package) {
+void UKF::UpdateLidar(const VectorXd& z_meas) {
   /**
   TODO:
 
@@ -242,12 +232,37 @@ void UKF::UpdateLidar(const MeasurementPackage& meas_package) {
 
   You'll also need to calculate the lidar NIS.
   */
-  VectorXd z_pred = PredictLidarMeasurement();
-  cout << "z_pred = " << endl << z_pred << endl;
-}
+  MatrixXd Zsig = MatrixXd(2, Xsig_pred_.cols());
+  VectorXd z_pred = VectorXd::Zero(2);
+  MatrixXd S = MatrixXd::Zero(2, 2);
+    
+  for (int i = 0; i < Xsig_pred_.cols(); i++) {
+    Zsig.col(i) = Xsig_pred_.col(i).head(2);
+  }
 
-VectorXd UKF::PredictLidarMeasurement() {
-  return VectorXd::Zero(2);
+  for (int i = 0; i < Zsig.cols(); i++) {
+    z_pred += weights_[i] * Zsig.col(i);
+  }
+
+  for (int i = 0; i < Zsig.cols(); i++) {
+    VectorXd diff = Zsig.col(i) - z_pred;
+    S += weights_[i] * diff * diff.transpose();
+  }
+
+  S+= R_laser_;
+
+  MatrixXd T = MatrixXd::Zero(n_x_, 2);
+  for (int i = 0; i < Zsig.cols(); i++) {
+    VectorXd x_diff = Xsig_pred_.col(i) - x_;
+    NormalizeAngle(x_diff[3]);
+    VectorXd z_diff = Zsig.col(i) - z_pred;
+    T += weights_[i] * x_diff * z_diff.transpose();
+  }
+
+  MatrixXd K = T * S.inverse();
+  x_ = x_ + K * (z_meas - z_pred);
+  P_ = P_ - K * S * K.transpose();
+  
 }
 
 /**

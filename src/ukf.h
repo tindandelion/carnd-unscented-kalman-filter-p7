@@ -67,6 +67,8 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
+  MatrixXd R_laser_;
+
 
   /**
    * Constructor
@@ -95,7 +97,7 @@ public:
    * Updates the state and the state covariance matrix using a laser measurement
    * @param meas_package The measurement at k+1
    */
-  void UpdateLidar(const MeasurementPackage& meas_package);
+  void UpdateLidar(const VectorXd& meas_package);
 
   /**
    * Updates the state and the state covariance matrix using a radar measurement
@@ -109,8 +111,6 @@ private:
   void PredictSigmaPoints(const MatrixXd& X_sigma, double delta_t);
   void PredictState();
   void Update(const MeasurementPackage& meas_package);
-
-  VectorXd PredictLidarMeasurement();
 };
 
 #endif /* UKF_H */

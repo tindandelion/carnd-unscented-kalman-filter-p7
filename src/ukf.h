@@ -68,6 +68,7 @@ public:
   double lambda_;
 
   MatrixXd R_laser_;
+  MatrixXd R_radar_;
 
 
   /**

@@ -13,6 +13,19 @@ double NormalizeAngle(double angle_rad) {
   return angle_rad;
 }
 
+VectorXd StateDelta(const VectorXd& s1, const VectorXd& s2) {
+  VectorXd delta = s1 - s2;
+  delta[3] = NormalizeAngle(delta[3]);
+  delta[4] = NormalizeAngle(delta[4]);
+  return delta;
+}
+
+VectorXd RadarDelta(const VectorXd& s1, const VectorXd& s2) {
+  VectorXd delta = s1 - s2;
+  delta[1] = NormalizeAngle(delta[1]);
+  return delta;
+}
+
 /**
  * Initializes Unscented Kalman filter
  */
@@ -72,8 +85,14 @@ UKF::UKF() {
     std_laspx_*std_laspx_, 0,
     0, std_laspy_*std_laspy_;
 
+  R_radar_ = MatrixXd(3, 3);
+  R_radar_ <<
+    std_radr_*std_radr_, 0, 0,
+    0, std_radphi_*std_radphi_, 0,
+    0, 0, std_radrd_*std_radrd_;
+
   std_a_ = 0.5;
-  std_yawdd_ = M_PI / 12;
+  std_yawdd_ = M_PI / 6;
 
 
   /**
@@ -167,8 +186,7 @@ void UKF::PredictState() {
   }
   
   for(int i = 0; i < Xsig_pred_.cols(); i++) {
-    VectorXd diff = Xsig_pred_.col(i) - x;
-    diff(3) = NormalizeAngle(diff(3));
+    VectorXd diff = StateDelta(Xsig_pred_.col(i), x);
     P += weights_[i] * diff * diff.transpose();
   }
   x_ = x;
@@ -219,19 +237,7 @@ void UKF::Update(const MeasurementPackage& meas_package) {
   }
 }
 
-/**
- * Updates the state and the state covariance matrix using a laser measurement.
- * @param {MeasurementPackage} meas_package
- */
 void UKF::UpdateLidar(const VectorXd& z_meas) {
-  /**
-  TODO:
-
-  Complete this function! Use lidar data to update the belief about the object's
-  position. Modify the state vector, x_, and covariance, P_.
-
-  You'll also need to calculate the lidar NIS.
-  */
   MatrixXd Zsig = MatrixXd(2, Xsig_pred_.cols());
   VectorXd z_pred = VectorXd::Zero(2);
   MatrixXd S = MatrixXd::Zero(2, 2);
@@ -253,8 +259,7 @@ void UKF::UpdateLidar(const VectorXd& z_meas) {
 
   MatrixXd T = MatrixXd::Zero(n_x_, 2);
   for (int i = 0; i < Zsig.cols(); i++) {
-    VectorXd x_diff = Xsig_pred_.col(i) - x_;
-    x_diff[3] = NormalizeAngle(x_diff[3]);
+    VectorXd x_diff = StateDelta(Xsig_pred_.col(i), x_);
     VectorXd z_diff = Zsig.col(i) - z_pred;
     T += weights_[i] * x_diff * z_diff.transpose();
   }
@@ -271,17 +276,48 @@ void UKF::UpdateLidar(const VectorXd& z_meas) {
   
 }
 
-/**
- * Updates the state and the state covariance matrix using a radar measurement.
- * @param {MeasurementPackage} meas_package
- */
 void UKF::UpdateRadar(const VectorXd& z_meas) {
-  /**
-  TODO:
+  MatrixXd Zsig = MatrixXd(3, Xsig_pred_.cols());
+  VectorXd z_pred = VectorXd::Zero(3);
+  MatrixXd S = MatrixXd::Zero(3, 3);
+    
+  for (int i = 0; i < Xsig_pred_.cols(); i++) {
+    const VectorXd& pt = Xsig_pred_.col(i);
+    double px = pt[0], py = pt[1], v = pt[2], yaw = pt[3];
+    VectorXd z = VectorXd(3);
 
-  Complete this function! Use radar data to update the belief about the object's
-  position. Modify the state vector, x_, and covariance, P_.
+    z[0] = sqrt(px*px + py*py);;
+    z[1] = atan2(py, px);
+    z[2] = (px*cos(yaw)*v + py*sin(yaw)*v) / z[0];    
+    Zsig.col(i) = z;
+  }
 
-  You'll also need to calculate the radar NIS.
-  */
+
+  for (int i = 0; i < Zsig.cols(); i++) {
+    z_pred += weights_[i] * Zsig.col(i);
+  }
+
+  for (int i = 0; i < Zsig.cols(); i++) {
+    VectorXd diff = RadarDelta(Zsig.col(i), z_pred);
+    S += weights_[i] * diff * diff.transpose();
+  }
+
+  S+= R_radar_;
+
+  MatrixXd T = MatrixXd::Zero(n_x_, 3);
+  for (int i = 0; i < Zsig.cols(); i++) {
+    VectorXd x_diff = StateDelta(Xsig_pred_.col(i), x_);
+    VectorXd z_diff = RadarDelta(Zsig.col(i), z_pred);
+    T += weights_[i] * x_diff * z_diff.transpose();
+  }
+
+  VectorXd delta_z = RadarDelta(z_meas, z_pred);
+  MatrixXd S_inv = S.inverse();
+
+  MatrixXd K = T * S_inv;
+  x_ = x_ + K * delta_z;
+  P_ = P_ - K * S * K.transpose();
+
+  VectorXd nis = delta_z.transpose() * S_inv * delta_z;
+  cout << nis << endl;
 }

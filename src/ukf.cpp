@@ -214,7 +214,9 @@ void UKF::Update(const MeasurementPackage& meas_package) {
   
   if (sensor == MeasurementPackage::LASER && use_laser_) {
     UpdateLidar(meas_package.raw_measurements_);
-  } 
+  } else if (sensor == MeasurementPackage::RADAR && use_radar_) {
+    UpdateRadar(meas_package.raw_measurements_);
+  }
 }
 
 /**
@@ -252,7 +254,7 @@ void UKF::UpdateLidar(const VectorXd& z_meas) {
   MatrixXd T = MatrixXd::Zero(n_x_, 2);
   for (int i = 0; i < Zsig.cols(); i++) {
     VectorXd x_diff = Xsig_pred_.col(i) - x_;
-    NormalizeAngle(x_diff[3]);
+    x_diff[3] = NormalizeAngle(x_diff[3]);
     VectorXd z_diff = Zsig.col(i) - z_pred;
     T += weights_[i] * x_diff * z_diff.transpose();
   }
@@ -273,7 +275,7 @@ void UKF::UpdateLidar(const VectorXd& z_meas) {
  * Updates the state and the state covariance matrix using a radar measurement.
  * @param {MeasurementPackage} meas_package
  */
-void UKF::UpdateRadar(MeasurementPackage meas_package) {
+void UKF::UpdateRadar(const VectorXd& z_meas) {
   /**
   TODO:
 

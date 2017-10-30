@@ -26,6 +26,10 @@ VectorXd RadarDelta(const VectorXd& s1, const VectorXd& s2) {
   return delta;
 }
 
+VectorXd LaserDelta(const VectorXd& s1, const VectorXd& s2) {
+  return s1 - s2;
+}
+
 /**
  * Initializes Unscented Kalman filter
  */
@@ -93,15 +97,6 @@ UKF::UKF() {
 
   std_a_ = 0.5;
   std_yawdd_ = M_PI / 6;
-
-
-  /**
-  TODO:
-
-  Complete the initialization. See ukf.h for other member properties.
-
-  Hint: one or more values initialized above might be wildly off...
-  */
 }
 
 UKF::~UKF() {}
@@ -198,12 +193,6 @@ void UKF::PredictState() {
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-  /**
-  TODO:
-
-  Complete this function! Make sure you switch between lidar and radar
-  measurements.
-  */
   double time_delta = (meas_package.timestamp_ - time_us_) / 1e6;
   time_us_ = meas_package.timestamp_;
   
@@ -251,7 +240,7 @@ void UKF::UpdateLidar(const VectorXd& z_meas) {
   }
 
   for (int i = 0; i < Zsig.cols(); i++) {
-    VectorXd diff = Zsig.col(i) - z_pred;
+    VectorXd diff = LaserDelta(Zsig.col(i), z_pred);
     S += weights_[i] * diff * diff.transpose();
   }
 
@@ -260,11 +249,11 @@ void UKF::UpdateLidar(const VectorXd& z_meas) {
   MatrixXd T = MatrixXd::Zero(n_x_, 2);
   for (int i = 0; i < Zsig.cols(); i++) {
     VectorXd x_diff = StateDelta(Xsig_pred_.col(i), x_);
-    VectorXd z_diff = Zsig.col(i) - z_pred;
+    VectorXd z_diff = LaserDelta(Zsig.col(i), z_pred);
     T += weights_[i] * x_diff * z_diff.transpose();
   }
 
-  VectorXd delta_z = z_meas - z_pred;
+  VectorXd delta_z = LaserDelta(z_meas, z_pred);
   MatrixXd S_inv = S.inverse();
   
   MatrixXd K = T * S_inv;

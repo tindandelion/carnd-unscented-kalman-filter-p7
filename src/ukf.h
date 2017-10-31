@@ -10,6 +10,16 @@
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
+struct MeasurementUpdate {
+  VectorXd dz;
+  MatrixXd S;
+  MatrixXd T;
+  MatrixXd S_inv;
+
+  MeasurementUpdate(const VectorXd& dz, const MatrixXd& S, const MatrixXd& T):
+    dz(dz), S(S), T(T), S_inv(S.inverse()) { }
+};
+
 class UKF {
 public:
 
@@ -79,8 +89,8 @@ private:
   void PredictState();
   
   void Update(const MeasurementPackage& meas_package);
-  void UpdateLidar(const VectorXd& z_meas);
-  void UpdateRadar(const VectorXd& z_meas);
+  MeasurementUpdate CalcLidarUpdate(const VectorXd& z_meas) const;
+  MeasurementUpdate CalcRadarUpdate(const VectorXd& z_meas) const;
 };
 
 #endif /* UKF_H */

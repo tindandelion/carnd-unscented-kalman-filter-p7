@@ -181,13 +181,29 @@ void UKF::Update(const MeasurementPackage& meas_package) {
   MeasurementPackage::SensorType sensor = meas_package.sensor_type_;
   
   if (sensor == MeasurementPackage::LASER && use_laser_) {
-    UpdateLidar(meas_package.raw_measurements_);
+    MeasurementUpdate update = CalcLidarUpdate(meas_package.raw_measurements_);
+    
+    MatrixXd K = update.T * update.S_inv;
+    x_ = x_ + K * update.dz;
+    P_ = P_ - K * update.S * K.transpose();
+
+    VectorXd nis = update.dz.transpose() * update.S_inv * update.dz;
+    cout << nis << endl;
+    
   } else if (sensor == MeasurementPackage::RADAR && use_radar_) {
-    UpdateRadar(meas_package.raw_measurements_);
+    MeasurementUpdate update = CalcRadarUpdate(meas_package.raw_measurements_);
+    
+    MatrixXd K = update.T * update.S_inv;
+    x_ = x_ + K * update.dz;
+    P_ = P_ - K * update.S * K.transpose();
+
+    VectorXd nis = update.dz.transpose() * update.S_inv * update.dz;
+    cout << nis << endl;
+
   }
 }
 
-void UKF::UpdateLidar(const VectorXd& z_meas) {
+MeasurementUpdate UKF::CalcLidarUpdate(const VectorXd& z_meas) const {
   MatrixXd Zsig = MatrixXd(2, Xsig_pred_.cols());
   VectorXd z_pred = VectorXd::Zero(2);
   MatrixXd S = MatrixXd::Zero(2, 2);
@@ -215,18 +231,10 @@ void UKF::UpdateLidar(const VectorXd& z_meas) {
   }
 
   VectorXd delta_z = LaserDelta(z_meas, z_pred);
-  MatrixXd S_inv = S.inverse();
-  
-  MatrixXd K = T * S_inv;
-  x_ = x_ + K * delta_z;
-  P_ = P_ - K * S * K.transpose();
-
-  VectorXd nis = delta_z.transpose() * S_inv * delta_z;
-  cout << nis << endl;
-  
+  return MeasurementUpdate(delta_z, S, T);
 }
 
-void UKF::UpdateRadar(const VectorXd& z_meas) {
+MeasurementUpdate UKF::CalcRadarUpdate(const VectorXd& z_meas) const {
   MatrixXd Zsig = MatrixXd(3, Xsig_pred_.cols());
   VectorXd z_pred = VectorXd::Zero(3);
   MatrixXd S = MatrixXd::Zero(3, 3);
@@ -262,12 +270,5 @@ void UKF::UpdateRadar(const VectorXd& z_meas) {
   }
 
   VectorXd delta_z = RadarDelta(z_meas, z_pred);
-  MatrixXd S_inv = S.inverse();
-
-  MatrixXd K = T * S_inv;
-  x_ = x_ + K * delta_z;
-  P_ = P_ - K * S * K.transpose();
-
-  VectorXd nis = delta_z.transpose() * S_inv * delta_z;
-  cout << nis << endl;
+  return MeasurementUpdate(delta_z, S, T);
 }

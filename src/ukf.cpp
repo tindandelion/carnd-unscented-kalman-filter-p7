@@ -188,12 +188,8 @@ void UKF::Update(const MeasurementPackage& meas_package) {
 }
 
 void UKF::UpdateState(const MeasurementUpdate& update) {
-  MatrixXd K = update.T * update.S_inv;
-  x_ = x_ + K * update.dz;
-  P_ = P_ - K * update.S * K.transpose();
-
-  VectorXd nis = update.dz.transpose() * update.S_inv * update.dz;
-  cout << nis << endl;
+  update.UpdateState(x_, P_);
+  cout << update.Nis() << endl;
 }
 
 MeasurementUpdate UKF::CalcLidarUpdate(const VectorXd& z_meas) const {

@@ -10,16 +10,35 @@
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-struct MeasurementUpdate {
-  VectorXd dz;
-  MatrixXd S;
-  MatrixXd T;
-  MatrixXd S_inv;
+/*
+ * Helper class to calculate Kalman gain and update the state mean and covariance
+ */
+class MeasurementUpdate {
+  VectorXd dz_;
+  MatrixXd S_;
+  MatrixXd T_;
+  MatrixXd S_inv_;
 
+public:
   MeasurementUpdate(const VectorXd& dz, const MatrixXd& S, const MatrixXd& T):
-    dz(dz), S(S), T(T), S_inv(S.inverse()) { }
+    dz_(dz), S_(S), T_(T), S_inv_(S.inverse()) { }
+  
+  void UpdateState(VectorXd& x, MatrixXd& P) const {
+    MatrixXd K = T_ * S_inv_;
+    x = x + K * dz_;
+    P = P - K * S_ * K.transpose();
+  }
+
+  double Nis() const {
+    VectorXd nis = dz_.transpose() * S_inv_ * dz_;
+    return nis[0];
+  }
 };
 
+
+/*
+ * Main class to perform UKF predict/update cycle with laser or radar measurements
+ */
 class UKF {
 public:
 

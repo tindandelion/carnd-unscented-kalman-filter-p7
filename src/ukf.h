@@ -91,6 +91,7 @@ private:
   void Update(const MeasurementPackage& meas_package);
   MeasurementUpdate CalcLidarUpdate(const VectorXd& z_meas) const;
   MeasurementUpdate CalcRadarUpdate(const VectorXd& z_meas) const;
+  void UpdateState(const MeasurementUpdate& update);
 };
 
 #endif /* UKF_H */

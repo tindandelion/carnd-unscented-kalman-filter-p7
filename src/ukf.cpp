@@ -181,26 +181,19 @@ void UKF::Update(const MeasurementPackage& meas_package) {
   MeasurementPackage::SensorType sensor = meas_package.sensor_type_;
   
   if (sensor == MeasurementPackage::LASER && use_laser_) {
-    MeasurementUpdate update = CalcLidarUpdate(meas_package.raw_measurements_);
-    
-    MatrixXd K = update.T * update.S_inv;
-    x_ = x_ + K * update.dz;
-    P_ = P_ - K * update.S * K.transpose();
-
-    VectorXd nis = update.dz.transpose() * update.S_inv * update.dz;
-    cout << nis << endl;
-    
+    UpdateState(CalcLidarUpdate(meas_package.raw_measurements_));
   } else if (sensor == MeasurementPackage::RADAR && use_radar_) {
-    MeasurementUpdate update = CalcRadarUpdate(meas_package.raw_measurements_);
-    
-    MatrixXd K = update.T * update.S_inv;
-    x_ = x_ + K * update.dz;
-    P_ = P_ - K * update.S * K.transpose();
-
-    VectorXd nis = update.dz.transpose() * update.S_inv * update.dz;
-    cout << nis << endl;
-
+    UpdateState(CalcRadarUpdate(meas_package.raw_measurements_));
   }
+}
+
+void UKF::UpdateState(const MeasurementUpdate& update) {
+  MatrixXd K = update.T * update.S_inv;
+  x_ = x_ + K * update.dz;
+  P_ = P_ - K * update.S * K.transpose();
+
+  VectorXd nis = update.dz.transpose() * update.S_inv * update.dz;
+  cout << nis << endl;
 }
 
 MeasurementUpdate UKF::CalcLidarUpdate(const VectorXd& z_meas) const {

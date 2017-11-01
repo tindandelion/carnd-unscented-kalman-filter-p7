@@ -7,9 +7,10 @@ tracks a vehicle, using noisy radar and laser (lidar) measurements as input.
 ## Vehicle motion model
 
 This project uses a non-linear motion model for the vehicle being
-tracked. Unlike the previous project for Extended Kalman Filter that assumed a
-linear motion model with a constant speed, this project invokes a model that
-accounts better for non-linear movements. 
+tracked. Unlike the previous project for
+[Extended Kalman Filter](https://github.com/tindandelion/carnd-extended-kalman-filter-p6)
+that assumed a linear motion model with a constant speed, this project invokes a
+model that accounts better for non-linear movements.
 
 Specifically, this motion model is called *Constant Turn Rate and Velocity
 (CTRV)*. It tracks the following components in the vehicle's state: 

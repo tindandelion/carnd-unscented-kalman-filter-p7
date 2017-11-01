@@ -47,7 +47,7 @@ position and velocity:
 
 ![Screenshot](writeup/screenshot.png)
 
-## Evaluate process noise
+## Evaluate process noise parameters
 
 As a part of the project I had to choose the process noise parameters for
 velocicy acceleration and yaw rate acceleration, which are assumed to be
@@ -68,6 +68,24 @@ process noise parameters:
 
 That gives the following NIS value graphs: 
 
+![NIS value graphs](writeup/nis.png)
+
+Interpreting these graphs, we can see that most of NIS values lie below the
+thresholds, with some minor fraction of outliers. That suggests that the
+distribution parameters for the process noise are good enough. 
+
+## Conclusions
+
+- Unscented Kalman Filter is an extension of the idea of regular Kalman filter
+  that allows using non-linear process and/or measurement models;
+  
+- Constant Turn Rate and Velocity motion model provides better tracking
+  accuracy, compared to the basic linear motion model, because it accounts for
+  more complex movement trajectories;
+  
+- One way to estimate the filter's consistency is to evaluate Normalized
+  Innovation Squared values.
+  
 
 
 

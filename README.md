@@ -47,5 +47,30 @@ position and velocity:
 
 ![Screenshot](writeup/screenshot.png)
 
+## Evaluate process noise
+
+As a part of the project I had to choose the process noise parameters for
+velocicy acceleration and yaw rate acceleration, which are assumed to be
+Gaussians with 0 mean and standard deviations *σ<sub>a</sub>*,
+*σ<sub>ψ''</sub>*. The suggested way of evaluating the accuracy of chosen values
+is to calculate and analyze *Normalized Innovation Squared* (NIS). The idea is
+that for good enough values of process noise parameters the value of NIS should
+be below a certain threshold (NIS value is distributed as *χ<sup>2</sup>* with 2
+or 3 degrees of freedom for lidar or radar, respectively).
+
+Having tried different values, I came up with the following values for the
+process noise parameters:
+
+|                   |                       |
+|:------------------|----------------------:|
+| *σ<sub>a</sub>*   | 0.5 m/s<sup>2</sup>   |
+| *σ<sub>ψ''</sub>* | π/8 rad/s<sup>2</sup> |
+
+That gives the following NIS value graphs: 
+
+
+
+
+
 
 

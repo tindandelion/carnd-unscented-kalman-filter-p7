@@ -9,7 +9,7 @@ tracks a vehicle, using noisy radar and laser (lidar) measurements as input.
 This project uses a non-linear motion model for the vehicle being
 tracked. Unlike the previous project for
 [Extended Kalman Filter](https://github.com/tindandelion/carnd-extended-kalman-filter-p6)
-that assumed a linear motion model with a constant speed, this project invokes a
+that assumed a linear motion model with a constant velocity, this project invokes a
 model that accounts better for non-linear movements.
 
 Specifically, this motion model is called *Constant Turn Rate and Velocity
@@ -51,7 +51,7 @@ position and velocity:
 ## Evaluate process noise parameters
 
 As a part of the project I had to choose the process noise parameters for
-velocicy acceleration and yaw rate acceleration, which are assumed to be
+tangential acceleration and yaw rate acceleration, which are assumed to be
 Gaussians with 0 mean and standard deviations *σ<sub>a</sub>*,
 *σ<sub>ψ''</sub>*. The suggested way of evaluating the accuracy of chosen values
 is to calculate and analyze *Normalized Innovation Squared* (NIS). The idea is
